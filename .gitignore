@@ -1,3 +1,4 @@
 secrets.ini
 
 .idea
+__pycache__
