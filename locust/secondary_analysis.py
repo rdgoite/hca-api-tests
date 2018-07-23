@@ -1,12 +1,15 @@
+import json
 import os
+import re
 from configparser import ConfigParser
 
 import requests
-from locust import TaskSet, seq_task, HttpLocust
+from locust import TaskSet, HttpLocust, task
 
 AUTH_BROKER_URL = 'https://danielvaughan.eu.auth0.com/oauth/token'
 
 BASE_DIRECTORY = os.path.abspath(os.path.dirname(__file__))
+FILE_DIRECTORY = f'{BASE_DIRECTORY}/files/secondary_analysis'
 
 _config = ConfigParser()
 _secret_file_path = os.path.join(BASE_DIRECTORY, 'secrets.ini')
@@ -18,9 +21,14 @@ def secret_default(secret):
 
 
 class SecondarySubmission(TaskSet):
+
+    _url_pattern = None
+
     _access_token = None
 
     def on_start(self):
+        pattern = f'{self.client.base_url}(?P<url>/.*)'
+        self._url_pattern = re.compile(pattern)
         self.authenticate()
 
     def authenticate(self):
@@ -34,10 +42,23 @@ class SecondarySubmission(TaskSet):
         credentials_json = response.json()
         self._access_token = credentials_json.get('access_token')
 
-    @seq_task(1)
-    def create_submission(self):
+    @task
+    def execute(self):
+        processes_link = self._create_submission()
+        self._add_analysis_to_submission(processes_link)
+
+    def _create_submission(self):
         headers = {'Authorization': f'Bearer {self._access_token}'}
-        self.client.post('/submissionEnvelopes', headers=headers, json={})
+        response = self.client.post('/submissionEnvelopes', headers=headers, json={})
+        response_json = response.json()
+        print(json.dumps(response_json, indent=4))
+        return response_json['_links']['processes']['href']
+
+    @staticmethod
+    def _add_analysis_to_submission(processes_link):
+        with open(f'{FILE_DIRECTORY}/analysis.json') as analysis_file:
+            request_json = json.load(analysis_file)
+            response = requests.post(processes_link, json=request_json)
 
 
 class GreenBox(HttpLocust):
