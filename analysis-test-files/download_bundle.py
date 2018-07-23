@@ -30,9 +30,9 @@ def _download_file(file_uuid, file_name):
             bundle_file.write(chunk)
 
 
-def _download_bundle_files(files):
-    if 'files' in bundle:
-        files = bundle.get('files')
+def _download_bundle_files(_bundle):
+    if 'files' in _bundle:
+        files = _bundle.get('files')
         for count, file in enumerate(files):
             file_uuid = file.get('uuid')
             file_name = file.get('name')
