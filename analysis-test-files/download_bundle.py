@@ -8,13 +8,16 @@ DSS_BASE_URL = 'https://dss.integration.data.humancellatlas.org/v1'
 
 
 def _pretty_print(json_data):
-    print(json.dumps(json_data, indent=4))
+    return json.dumps(json_data, indent=4)
 
 
 def _retrieve_bundle(bundle_uuid):
     bundle_url = f'{DSS_BASE_URL}/bundles/{bundle_uuid}'
     bundle_json = requests.get(bundle_url, params={'replica': 'aws'}).json()
-    _pretty_print(bundle_json)
+    formatted_json = _pretty_print(bundle_json)
+    with open('bundle.json', 'w') as bundle_file:
+        print('Writing bundle file to [bundle.json]...')
+        print(formatted_json, file=bundle_file)
     return bundle_json.get('bundle')
 
 
