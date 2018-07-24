@@ -20,6 +20,16 @@ def secret_default(secret):
     return _config.get('default', secret, fallback=None)
 
 
+class Submission(object):
+
+    _links = None
+
+    def __init__(self, links):
+        self._links = links
+
+    def get_link(self, path):
+        return self._links[path]['href']
+
 class SecondarySubmission(TaskSet):
 
     _url_pattern = None
@@ -44,7 +54,8 @@ class SecondarySubmission(TaskSet):
 
     @task
     def execute(self):
-        processes_link = self._create_submission()
+        submission = self._create_submission()
+        processes_link = submission.get_link('processes')
         self._add_analysis_to_submission(processes_link)
 
     def _create_submission(self):
@@ -52,7 +63,7 @@ class SecondarySubmission(TaskSet):
         response = self.client.post('/submissionEnvelopes', headers=headers, json={})
         response_json = response.json()
         print(json.dumps(response_json, indent=4))
-        return response_json['_links']['processes']['href']
+        return Submission(response_json['_links'])
 
     @staticmethod
     def _add_analysis_to_submission(processes_link):
