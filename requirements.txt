@@ -4,3 +4,4 @@ idna==2.7
 requests==2.19.1
 urllib3==1.23
 locustio==0.8.1
+hca>=4.1.0
