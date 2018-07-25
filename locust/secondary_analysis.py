@@ -1,13 +1,13 @@
 import json
+import logging
 import os
 import re
 import time
 from collections import deque
 from configparser import ConfigParser
 
-import logging
 import requests
-from locust import TaskSet, HttpLocust, task, seq_task
+from locust import TaskSet, HttpLocust, task
 
 AUTH_BROKER_URL = 'https://danielvaughan.eu.auth0.com/oauth/token'
 
@@ -54,11 +54,7 @@ _submission_queue = SubmissionQueue()
 
 class SecondarySubmission(TaskSet):
 
-    _url_pattern = None
-
     _access_token = None
-
-    _submission = None
 
     def on_start(self):
         pattern = f'{self.client.base_url}(?P<url>/.*)'
@@ -76,7 +72,7 @@ class SecondarySubmission(TaskSet):
         credentials_json = response.json()
         self._access_token = credentials_json.get('access_token')
 
-    @seq_task(1)
+    @task
     def setup_analysis(self):
         submission = self._create_submission()
         processes_link = submission.get_link('processes')
@@ -96,7 +92,10 @@ class SecondarySubmission(TaskSet):
             request_json = json.load(analysis_file)
             requests.post(processes_link, json=request_json)
 
-    @seq_task(2)
+
+class FileUpload(TaskSet):
+
+    @task
     def upload_files(self):
         submission = _submission_queue.wait_for_submission()
         submission_link = submission.get_link('self')
@@ -119,3 +118,7 @@ class SecondarySubmission(TaskSet):
 
 class GreenBox(HttpLocust):
     task_set = SecondarySubmission
+
+
+class FileUploader(HttpLocust):
+    task_set = FileUpload
