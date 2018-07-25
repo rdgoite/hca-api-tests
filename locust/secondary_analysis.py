@@ -54,13 +54,9 @@ _submission_queue = SubmissionQueue()
 
 class SecondarySubmission(TaskSet):
 
-    _url_pattern = None
-
     _access_token = None
 
     def on_start(self):
-        pattern = f'{self.client.base_url}(?P<url>/.*)'
-        self._url_pattern = re.compile(pattern)
         self.authenticate()
 
     def authenticate(self):
@@ -91,14 +87,11 @@ class SecondarySubmission(TaskSet):
     def _add_analysis_to_submission(self, processes_link):
         with open(f'{FILE_DIRECTORY}/analysis.json') as analysis_file:
             request_json = json.load(analysis_file)
-            self.client.post(self._strip_url(processes_link), json=request_json,
+            self.client.post(processes_link, json=request_json,
                              name='/submissionEnvelopes/[id]/processes')
 
-    def _strip_url(self, url):
-        match = self._url_pattern.match(url)
-        return match.group('url') if match else None
 
-class FileUpload(TaskSet):
+class FileStaging(TaskSet):
 
     @task
     def upload_files(self):
@@ -126,4 +119,4 @@ class GreenBox(HttpLocust):
 
 
 class FileUploader(HttpLocust):
-    task_set = FileUpload
+    task_set = FileStaging
