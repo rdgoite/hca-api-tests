@@ -1,0 +1,10 @@
+{
+  "stagingDetails": {
+    "stagingAreaUuid": {
+      "uuid": "e4e250d5-3192-4a1f-aaeb-3fa217eefd48"
+    },
+    "stagingAreaLocation": {
+      "value": "s3://org-humancellatlas-upload-dev/e4e250d5-3192-4a1f-aaeb-3fa217eefd48/"
+    }
+  }
+}

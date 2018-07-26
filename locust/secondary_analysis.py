@@ -86,6 +86,7 @@ class SecondarySubmission(TaskSet):
 
     def _add_analysis_to_submission(self, processes_link):
         with open(f'{FILE_DIRECTORY}/analysis.json') as analysis_file:
+            # TODO set this as instance variable; instantiate on on_start
             request_json = json.load(analysis_file)
             self.client.post(processes_link, json=request_json,
                              name='/submissionEnvelopes/[id]/processes')
@@ -93,30 +94,23 @@ class SecondarySubmission(TaskSet):
 
 class FileStaging(TaskSet):
 
+    _dummy_staging_area_details = None
+
+    def on_start(self):
+        with open(f'{FILE_DIRECTORY}/staging_area_patch.json') as patch_file:
+            self._dummy_staging_area_details = json.load(patch_file)
+
     @task
-    def upload_files(self):
+    def update_staging_details(self):
         submission = _submission_queue.wait_for_submission()
         submission_link = submission.get_link('self')
-        staging_area_url = self._get_staging_area_url(submission_link)
-        while not staging_area_url:
-            time.sleep(2)
-            logging.debug(f'Reattempting to retrieve staging details from [{submission_link}]...')
-            staging_area_url = self._get_staging_area_url(submission_link)
-        logging.info(f'Retrieved staging details from [{submission_link}].')
-
-    @staticmethod
-    def _get_staging_area_url(submission_link):
-        url = None
-        response = requests.get(submission_link).json()
-        staging_details = response.get('stagingDetails')
-        if staging_details:
-            url = staging_details['stagingAreaLocation']['value']
-        return url
+        self.client.put(submission_link, json=self._dummy_staging_area_details,
+                        name="submissionEnvelopes/[id]")
 
 
 class GreenBox(HttpLocust):
     task_set = SecondarySubmission
 
 
-class FileUploader(HttpLocust):
+class StagingManager(HttpLocust):
     task_set = FileStaging
