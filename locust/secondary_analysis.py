@@ -1,7 +1,5 @@
 import json
-import logging
 import os
-import re
 import time
 from collections import deque
 from configparser import ConfigParser
@@ -56,7 +54,11 @@ class SecondarySubmission(TaskSet):
 
     _access_token = None
 
+    _dummy_analysis_details = None
+
     def on_start(self):
+        with open(f'{FILE_DIRECTORY}/analysis.json') as analysis_file:
+            self._dummy_analysis_details = json.load(analysis_file)
         self.authenticate()
 
     def authenticate(self):
@@ -85,11 +87,8 @@ class SecondarySubmission(TaskSet):
         return submission
 
     def _add_analysis_to_submission(self, processes_link):
-        with open(f'{FILE_DIRECTORY}/analysis.json') as analysis_file:
-            # TODO set this as instance variable; instantiate on on_start
-            request_json = json.load(analysis_file)
-            self.client.post(processes_link, json=request_json,
-                             name='/submissionEnvelopes/[id]/processes')
+        self.client.post(processes_link, json=self._dummy_analysis_details,
+                         name='/submissionEnvelopes/[id]/processes')
 
 
 class FileStaging(TaskSet):
