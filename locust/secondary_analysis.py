@@ -21,7 +21,7 @@ def secret_default(secret):
     return _config.get('default', secret, fallback=None)
 
 
-class Submission(object):
+class Resource(object):
 
     _links = None
 
@@ -32,14 +32,14 @@ class Submission(object):
         return self._links[path]['href']
 
 
-class SubmissionQueue:
+class ResourceQueue:
 
     _queue = deque()
 
-    def queue(self, submission: Submission):
-        self._queue.append(submission)
+    def queue(self, resource: Resource):
+        self._queue.append(resource)
 
-    def wait_for_submission(self):
+    def wait_for_resource(self):
         submission = self._queue.popleft() if len(self._queue) > 0 else None
         while not submission:
             time.sleep(0.5)
@@ -47,7 +47,7 @@ class SubmissionQueue:
         return submission
 
 
-_submission_queue = SubmissionQueue()
+_submission_queue = ResourceQueue()
 
 
 class SecondarySubmission(TaskSet):
@@ -78,11 +78,11 @@ class SecondarySubmission(TaskSet):
         processes_link = submission.get_link('processes')
         self._add_analysis_to_submission(processes_link)
 
-    def _create_submission(self) -> Submission:
+    def _create_submission(self) -> Resource:
         headers = {'Authorization': f'Bearer {self._access_token}'}
         response = self.client.post('/submissionEnvelopes', headers=headers, json={})
         response_json = response.json()
-        submission = Submission(response_json['_links'])
+        submission = Resource(response_json['_links'])
         _submission_queue.queue(submission)
         return submission
 
@@ -101,7 +101,7 @@ class FileStaging(TaskSet):
 
     @task
     def update_staging_details(self):
-        submission = _submission_queue.wait_for_submission()
+        submission = _submission_queue.wait_for_resource()
         submission_link = submission.get_link('self')
         self.client.put(submission_link, json=self._dummy_staging_area_details,
                         name="submissionEnvelopes/[id]")
