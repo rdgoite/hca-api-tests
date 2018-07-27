@@ -48,6 +48,7 @@ class ResourceQueue:
 
 
 _submission_queue = ResourceQueue()
+_analysis_queue = ResourceQueue()
 
 
 class SecondarySubmission(TaskSet):
@@ -87,8 +88,10 @@ class SecondarySubmission(TaskSet):
         return submission
 
     def _add_analysis_to_submission(self, processes_link):
-        self.client.post(processes_link, json=self._dummy_analysis_details,
-                         name='/submissionEnvelopes/[id]/processes')
+        response = self.client.post(processes_link, json=self._dummy_analysis_details,
+                                    name='/submissionEnvelopes/[id]/processes')
+        analysis_json = response.json()
+        _analysis_queue.queue(Resource(analysis_json['_links']))
 
 
 class FileStaging(TaskSet):
@@ -104,7 +107,17 @@ class FileStaging(TaskSet):
         submission = _submission_queue.wait_for_resource()
         submission_link = submission.get_link('self')
         self.client.put(submission_link, json=self._dummy_staging_area_details,
-                        name="submissionEnvelopes/[id]")
+                        name="/submissionEnvelopes/[id]")
+
+
+class Validation(TaskSet):
+
+    @task
+    def validate_analysis(self):
+        analysis = _analysis_queue.wait_for_resource()
+        analysis_link = f"{analysis.get_link('self')}"
+        self.client.patch(analysis_link, json={'validationErrors': []}, name='/processes/[id]')
+        self.client.patch(analysis_link, json={'validationState': 'VALID'}, name='/processes/[id]')
 
 
 class GreenBox(HttpLocust):
@@ -113,3 +126,7 @@ class GreenBox(HttpLocust):
 
 class StagingManager(HttpLocust):
     task_set = FileStaging
+
+
+class Validator(HttpLocust):
+    task_set = Validation
