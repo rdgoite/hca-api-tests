@@ -81,7 +81,8 @@ class SecondarySubmission(TaskSet):
 
     def _create_submission(self) -> Resource:
         headers = {'Authorization': f'Bearer {self._access_token}'}
-        response = self.client.post('/submissionEnvelopes', headers=headers, json={})
+        response = self.client.post('/submissionEnvelopes', headers=headers, json={},
+                                    name='create new submission')
         response_json = response.json()
         submission = Resource(response_json['_links'])
         _submission_queue.queue(submission)
@@ -89,7 +90,7 @@ class SecondarySubmission(TaskSet):
 
     def _add_analysis_to_submission(self, processes_link):
         response = self.client.post(processes_link, json=self._dummy_analysis_details,
-                                    name='/submissionEnvelopes/[id]/processes')
+                                    name='add analysis to submission')
         analysis_json = response.json()
         _analysis_queue.queue(Resource(analysis_json['_links']))
 
@@ -107,7 +108,7 @@ class FileStaging(TaskSet):
         submission = _submission_queue.wait_for_resource()
         submission_link = submission.get_link('self')
         self.client.put(submission_link, json=self._dummy_staging_area_details,
-                        name="/submissionEnvelopes/[id]")
+                        name="set staging details")
 
 
 class Validation(TaskSet):
@@ -116,8 +117,10 @@ class Validation(TaskSet):
     def validate_analysis(self):
         analysis = _analysis_queue.wait_for_resource()
         analysis_link = f"{analysis.get_link('self')}"
-        self.client.patch(analysis_link, json={'validationErrors': []}, name='/processes/[id]')
-        self.client.patch(analysis_link, json={'validationState': 'VALID'}, name='/processes/[id]')
+        self.client.patch(analysis_link, json={'validationErrors': []},
+                          name='report validation errors')
+        self.client.patch(analysis_link, json={'validationState': 'VALID'},
+                          name='set validation status')
 
 
 class GreenBox(HttpLocust):
