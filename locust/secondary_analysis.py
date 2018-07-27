@@ -76,23 +76,29 @@ class SecondarySubmission(TaskSet):
     @task
     def setup_analysis(self):
         submission = self._create_submission()
-        processes_link = submission.get_link('processes')
-        self._add_analysis_to_submission(processes_link)
+        if submission:
+            processes_link = submission.get_link('processes')
+            self._add_analysis_to_submission(processes_link)
 
     def _create_submission(self) -> Resource:
         headers = {'Authorization': f'Bearer {self._access_token}'}
         response = self.client.post('/submissionEnvelopes', headers=headers, json={},
                                     name='create new submission')
         response_json = response.json()
-        submission = Resource(response_json['_links'])
-        _submission_queue.queue(submission)
+        links = response_json.get('_links')
+        submission = None
+        if links:
+            submission = Resource(links)
+            _submission_queue.queue(submission)
         return submission
 
     def _add_analysis_to_submission(self, processes_link):
         response = self.client.post(processes_link, json=self._dummy_analysis_details,
                                     name='add analysis to submission')
         analysis_json = response.json()
-        _analysis_queue.queue(Resource(analysis_json['_links']))
+        links = analysis_json.get('_links')
+        if links:
+            _analysis_queue.queue(Resource(links))
 
 
 class FileStaging(TaskSet):
