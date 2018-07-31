@@ -60,18 +60,7 @@ class SecondarySubmission(TaskSet):
     def on_start(self):
         with open(f'{FILE_DIRECTORY}/analysis.json') as analysis_file:
             self._dummy_analysis_details = json.load(analysis_file)
-        self.authenticate()
-
-    def authenticate(self):
-        auth_request = {
-            'client_id': secret_default('client_id'),
-            'client_secret': secret_default('client_secret'),
-            'audience': 'http://localhost:8080',
-            'grant_type': 'client_credentials'
-        }
-        response = requests.post(AUTH_BROKER_URL, json=auth_request)
-        credentials_json = response.json()
-        self._access_token = credentials_json.get('access_token')
+        self._access_token = secret_default('access_token')
 
     @task
     def setup_analysis(self):
