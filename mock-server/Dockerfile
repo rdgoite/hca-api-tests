@@ -5,9 +5,11 @@ RUN apk update && \
 
 RUN mkdir server
 COPY init.sh server/init.sh
-COPY default_response.txt server/default_response.txt
+COPY response_header.txt server/response_header.txt
 
 RUN chmod +x server/init.sh
+
+ENV RESPONSE_BODY="{}"
 
 EXPOSE 8888
 
