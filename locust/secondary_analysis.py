@@ -90,21 +90,5 @@ class SecondarySubmission(TaskSet):
             _analysis_queue.queue(Resource(links))
 
 
-class Validation(TaskSet):
-
-    @task
-    def validate_analysis(self):
-        analysis = _analysis_queue.wait_for_resource()
-        analysis_link = f"{analysis.get_link('self')}"
-        self.client.patch(analysis_link, json={'validationErrors': []},
-                          name='report validation errors')
-        self.client.patch(analysis_link, json={'validationState': 'VALID'},
-                          name='set validation status')
-
-
 class GreenBox(HttpLocust):
     task_set = SecondarySubmission
-
-
-class Validator(HttpLocust):
-    task_set = Validation
