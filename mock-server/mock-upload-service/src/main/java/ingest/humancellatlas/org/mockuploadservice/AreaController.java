@@ -9,7 +9,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
+import java.util.UUID;
+
+import static java.lang.String.format;
 
 @RestController
 @RequestMapping("area")
@@ -19,10 +21,10 @@ public class AreaController {
     private ObjectMapper objectMapper;
 
     @PostMapping(value="/{uuid}", produces=MediaType.APPLICATION_JSON_VALUE)
-    public JsonNode createUploadArea(String uuid) {
+    public JsonNode createUploadArea(String submissionUuid) {
         ObjectNode response = objectMapper.createObjectNode();
-        response.put("uri",
-                "s3://org-humancellatlas-upload-dev/c56ce5ad-0b63-4d3d-b51e-0fcb2b68d661/");
+        String uploadAreaUuid = UUID.randomUUID().toString();
+        response.put("uri", format("s3://org-humancellatlas-upload-dev/%s/", uploadAreaUuid));
         return response;
     }
 
