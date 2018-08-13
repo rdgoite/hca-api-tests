@@ -23,7 +23,7 @@ import static java.lang.String.format;
 @RequestMapping("area")
 public class AreaController {
 
-    private static final String TOPIC_EXCHANGE_VALIDATION = "ingest.validation.exchange";
+    private static final String EXCHANGE_VALIDATION = "ingest.validation.exchange";
     private static final String ROUTING_KEY_VALIDATION = "ingest.file.validation.queue";
 
     @Autowired
@@ -60,7 +60,7 @@ public class AreaController {
 
     private void sendValidationStatus(ObjectNode validationResult) {
         validationResult.putObject("stdout").putArray("validationErrors");
-        rabbitTemplate.convertAndSend(TOPIC_EXCHANGE_VALIDATION, ROUTING_KEY_VALIDATION,
+        rabbitTemplate.convertAndSend(EXCHANGE_VALIDATION, ROUTING_KEY_VALIDATION,
                 validationResult);
     }
 
