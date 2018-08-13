@@ -1,6 +1,5 @@
 package ingest.humancellatlas.org.mockuploadservice;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
@@ -15,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.PostConstruct;
+import java.net.URI;
 import java.util.UUID;
 
 import static java.lang.String.format;
@@ -41,12 +41,12 @@ public class AreaController {
     }
 
     @PostMapping(value="/{uuid}", produces=MediaType.APPLICATION_JSON_VALUE)
-    public JsonNode createUploadArea(String submissionUuid) {
+    public ResponseEntity<ObjectNode> createUploadArea(String submissionUuid) {
         ObjectNode response = objectMapper.createObjectNode();
         String uploadAreaUuid = UUID.randomUUID().toString();
-        response.put("uri", format("s3://org-humancellatlas-upload-dev/%s/", uploadAreaUuid));
-        //TODO set to return 201 created response
-        return response;
+        String uploadAreaUri = format("s3://org-humancellatlas-upload-dev/%s/", uploadAreaUuid);
+        response.put("uri", uploadAreaUri);
+        return ResponseEntity.created(URI.create(uploadAreaUri)).body(response);
     }
 
     @PutMapping("/{uploadAreaUuid}/{fileName}/validate")
