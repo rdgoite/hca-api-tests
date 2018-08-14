@@ -12,8 +12,11 @@ import javax.annotation.PostConstruct;
 @Component
 public class MessageQueue {
 
-    public static final String EXCHANGE_VALIDATION = "ingest.validation.exchange";
-    public static final String ROUTING_KEY_VALIDATION = "ingest.file.validation.queue";
+    public static final String EXCHANGE_FILE_VALIDATION = "ingest.validation.exchange";
+    public static final String ROUTING_KEY_FILE_VALIDATION = "ingest.file.validation.queue";
+
+    public static final String EXCHANGE_FILE_STAGED = "ingest.file.staged.exchange";
+    public static final String ROUTING_KEY_FILE_STAGED = "ingest.file.create.staged";
 
     @Autowired
     private ConnectionFactory connectionFactory;
@@ -28,8 +31,13 @@ public class MessageQueue {
 
     public void sendValidationStatus(ObjectNode validationResult) {
         validationResult.putObject("stdout").putArray("validationErrors");
-        rabbitTemplate.convertAndSend(EXCHANGE_VALIDATION, ROUTING_KEY_VALIDATION,
+        rabbitTemplate.convertAndSend(EXCHANGE_FILE_VALIDATION, ROUTING_KEY_FILE_VALIDATION,
                 validationResult);
+    }
+
+    public void sendFileStagedNotification(ObjectNode fileStagedEvent) {
+        rabbitTemplate.convertAndSend(EXCHANGE_FILE_STAGED, ROUTING_KEY_FILE_STAGED,
+                fileStagedEvent);
     }
 
 }
