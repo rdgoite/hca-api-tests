@@ -4,6 +4,7 @@ import time
 from collections import deque
 from configparser import ConfigParser
 
+import copy
 import requests
 from locust import TaskSet, HttpLocust, task
 
@@ -52,8 +53,27 @@ _analysis_queue = ResourceQueue()
 
 with open(f'{FILE_DIRECTORY}/analysis.json') as analysis_file:
     _dummy_analysis = json.load(analysis_file)
+    
+with open(f'{FILE_DIRECTORY}/analysis.json') as analysis_file:
+    _dummy_analysis = json.load(analysis_file)
 
-#TODO move the part where we retrieve access token here
+_analysis_file_template = {
+    'fileName': '',
+    'content': {
+        'lane': 1,
+        'type': 'reads',
+        'name': '',
+        'format': '.fastq.gz'
+    }
+}
+
+_dummy_analysis_files = []
+for name in ['ERR1630013.fastq.gz', 'ERR1630014.fastq.gz']:
+    test_file = copy.copy(_analysis_file_template)
+    test_file['fileName'] = name
+    test_file['content']['name'] = name
+    _dummy_analysis_files.append(test_file)
+
 
 class SecondarySubmission(TaskSet):
 
@@ -87,7 +107,15 @@ class SecondarySubmission(TaskSet):
         analysis_json = response.json()
         links = analysis_json.get('_links')
         if links:
-            _analysis_queue.queue(Resource(links))
+            analysis = Resource(links)
+            _analysis_queue.queue(analysis)
+            self._add_file_reference(analysis)
+
+    def _add_file_reference(self, analysis: Resource):
+        file_reference_link = analysis.get_link('add-file-reference')
+        for dummy_analysis_file in _dummy_analysis_files:
+            self.client.put(file_reference_link, json=dummy_analysis_file,
+                            name="add file reference")
 
 
 class GreenBox(HttpLocust):
