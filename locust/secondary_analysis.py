@@ -50,16 +50,16 @@ class ResourceQueue:
 _submission_queue = ResourceQueue()
 _analysis_queue = ResourceQueue()
 
+with open(f'{FILE_DIRECTORY}/analysis.json') as analysis_file:
+    _dummy_analysis = json.load(analysis_file)
+
+#TODO move the part where we retrieve access token here
 
 class SecondarySubmission(TaskSet):
 
     _access_token = None
 
-    _dummy_analysis_details = None
-
     def on_start(self):
-        with open(f'{FILE_DIRECTORY}/analysis.json') as analysis_file:
-            self._dummy_analysis_details = json.load(analysis_file)
         self._access_token = secret_default('access_token')
 
     @task
@@ -82,7 +82,7 @@ class SecondarySubmission(TaskSet):
         return submission
 
     def _add_analysis_to_submission(self, processes_link):
-        response = self.client.post(processes_link, json=self._dummy_analysis_details,
+        response = self.client.post(processes_link, json=_dummy_analysis,
                                     name='add analysis to submission')
         analysis_json = response.json()
         links = analysis_json.get('_links')
