@@ -146,5 +146,25 @@ class SecondarySubmission(TaskSet):
         return upload_area_uuid
 
 
+class FileStaging(TaskSet):
+
+    _dummy_staging_area_details = None
+
+    def on_start(self):
+        with open(f'{FILE_DIRECTORY}/staging_area_patch.json') as patch_file:
+            self._dummy_staging_area_details = json.load(patch_file)
+
+    @task
+    def update_staging_details(self):
+        submission = _submission_queue.wait_for_resource()
+        submission_link = submission.get_link('self')
+        self.client.put(submission_link, json=self._dummy_staging_area_details,
+                        name="set staging details")
+
+
 class GreenBox(HttpLocust):
     task_set = SecondarySubmission
+
+
+class StagingManager(HttpLocust):
+    task_set = FileStaging
