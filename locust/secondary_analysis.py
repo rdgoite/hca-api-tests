@@ -37,7 +37,8 @@ class Resource(object):
 
 class ResourceQueue:
 
-    _queue = deque()
+    def __init__(self):
+        self._queue = deque()
 
     def queue(self, resource: Resource):
         self._queue.append(resource)
@@ -117,7 +118,6 @@ class SecondarySubmission(TaskSet):
             analysis = Resource(links)
             _analysis_queue.queue(analysis)
             self._add_file_reference(analysis)
-            self._upload_files(submission)
 
     def _add_file_reference(self, analysis: Resource):
         file_reference_link = analysis.get_link('add-file-reference')
@@ -125,15 +125,22 @@ class SecondarySubmission(TaskSet):
             self.client.put(file_reference_link, json=dummy_analysis_file,
                             name="add file reference")
 
-    def _upload_files(self, submission: Resource):
+
+class FileUpload(TaskSet):
+
+    def on_start(self):
+        pass
+
+    @task
+    def upload_files(self):
+        submission = _submission_queue.wait_for_resource()
         upload_area_uuid = None
         submission_link = submission.get_link('self')
         while not upload_area_uuid:
             upload_area_uuid = self._get_upload_area_uuid(submission_link)
-        for _dummy_analysis_file in _dummy_analysis_files:
-            upload_url = f'{_file_upload_base_url}/area/{upload_area_uuid}/files'
-            file_json = {'fileName': _dummy_analysis_file['fileName'], 'contentType': 'fastq'}
-            requests.put(upload_url, json=file_json)
+            if not upload_area_uuid:
+                time.sleep(3)
+        FileUpload._upload_dummy_files(upload_area_uuid)
 
     def _get_upload_area_uuid(self, submission_link):
         upload_area_uuid = None
@@ -145,26 +152,18 @@ class SecondarySubmission(TaskSet):
                 upload_area_uuid = staging_area_uuid.get('uuid')
         return upload_area_uuid
 
-
-class FileStaging(TaskSet):
-
-    _dummy_staging_area_details = None
-
-    def on_start(self):
-        with open(f'{FILE_DIRECTORY}/staging_area_patch.json') as patch_file:
-            self._dummy_staging_area_details = json.load(patch_file)
-
-    @task
-    def update_staging_details(self):
-        submission = _submission_queue.wait_for_resource()
-        submission_link = submission.get_link('self')
-        self.client.put(submission_link, json=self._dummy_staging_area_details,
-                        name="set staging details")
+    @staticmethod
+    def _upload_dummy_files(upload_area_uuid):
+        print('uploading dummy files...')
+        for _dummy_analysis_file in _dummy_analysis_files:
+            upload_url = f'{_file_upload_base_url}/area/{upload_area_uuid}/files'
+            file_json = {'fileName': _dummy_analysis_file['fileName'], 'contentType': 'fastq'}
+            requests.put(upload_url, json=file_json)
 
 
 class GreenBox(HttpLocust):
     task_set = SecondarySubmission
 
 
-class StagingManager(HttpLocust):
-    task_set = FileStaging
+class FileUploader(HttpLocust):
+    task_set = FileUpload
