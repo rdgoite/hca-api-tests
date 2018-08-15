@@ -52,10 +52,12 @@ public class AreaController {
     @PutMapping(value="/{areaUuid}/files", consumes=APPLICATION_JSON_VALUE)
     public void uploadFile(@PathVariable("areaUuid") String areaUuid,
             @RequestBody FileMetadata file) {
+        String fileName = file.getFileName();
+        LOGGER.info(format("Uploading file [%s] to [%s]...", fileName, areaUuid));
         ObjectNode fileStagedEvent = objectMapper.createObjectNode();
         fileStagedEvent
-                .put("url", format("s3://sample-bucket/%s/%s", areaUuid, file.getFileName()))
-                .put("name", file.getFileName())
+                .put("url", format("s3://sample-bucket/%s/%s", areaUuid, fileName))
+                .put("name", fileName)
                 .put("upload_area_id", areaUuid)
                 .put("content_type", file.getContentType());
         messageQueue.sendFileStagedNotification(fileStagedEvent);
