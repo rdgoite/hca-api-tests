@@ -3,26 +3,15 @@ import json
 import os
 import time
 from collections import deque
-from configparser import ConfigParser
 
 import requests
 from locust import TaskSet, HttpLocust, task
 
-AUTH_BROKER_URL = 'https://danielvaughan.eu.auth0.com/oauth/token'
+DEFAULT_AUTH_BROKER_URL = 'https://danielvaughan.eu.auth0.com/oauth/token'
+DEFAULT_FILE_UPLOAD_URL = 'http://localhost:8888/v1'
 
 BASE_DIRECTORY = os.path.abspath(os.path.dirname(__file__))
 FILE_DIRECTORY = f'{BASE_DIRECTORY}/files/secondary_analysis'
-
-DEFAULT_FILE_UPLOAD_URL = 'http://localhost:8888/v1'
-
-_config = ConfigParser()
-_secret_file_path = os.path.join(BASE_DIRECTORY, 'secrets.ini')
-_config.read(_secret_file_path)
-
-
-def secret_default(secret):
-    return _config.get('default', secret, fallback=None)
-
 
 class Resource(object):
 
@@ -78,14 +67,15 @@ for name in ['ERR1630013.fastq.gz', 'ERR1630014.fastq.gz']:
     _dummy_analysis_files.append(test_file)
 
 
-_file_upload_base_url = os.environ.get('FILE_UPLOAD_URL')
-if not _file_upload_base_url:
-    _file_upload_base_url = DEFAULT_FILE_UPLOAD_URL
+_file_upload_base_url = os.environ.get('FILE_UPLOAD_URL', DEFAULT_FILE_UPLOAD_URL)
 
+_auth_broker_url = os.environ.get('AUTH_BROKER_URL', DEFAULT_AUTH_BROKER_URL)
+_client_id = os.environ.get('CLIENT_ID', '')
+_client_secret = os.environ.get('CLIENT_SECRET', '')
 
 _sign_on_request = {
-    'client_id': secret_default('client_id'),
-    'client_secret': secret_default('client_secret'),
+    'client_id': _client_id,
+    'client_secret': _client_secret,
     'audience': 'http://localhost:8080',
     'grant_type': 'client_credentials'
 }
@@ -93,7 +83,7 @@ _sign_on_request = {
 
 def _sign_on():
     global _access_token
-    response = requests.post(AUTH_BROKER_URL, json=_sign_on_request)
+    response = requests.post(DEFAULT_AUTH_BROKER_URL, json=_sign_on_request)
     _access_token = response.json()['access_token']
 
 
