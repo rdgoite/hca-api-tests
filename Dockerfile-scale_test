@@ -1,7 +1,8 @@
 FROM python:3.6-slim
 
 WORKDIR locust
-COPY locust/files locust/secondary_analysis.py ./
+COPY locust/files ./files
+COPY locust/secondary_analysis.py .
 
 RUN pip install locust
 
