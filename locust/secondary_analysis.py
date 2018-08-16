@@ -3,11 +3,10 @@ import json
 import os
 import time
 from collections import deque
+from configparser import ConfigParser
 
 import requests
 from locust import TaskSet, HttpLocust, task
-
-from . import secrets
 
 AUTH_BROKER_URL = 'https://danielvaughan.eu.auth0.com/oauth/token'
 
@@ -15,6 +14,14 @@ BASE_DIRECTORY = os.path.abspath(os.path.dirname(__file__))
 FILE_DIRECTORY = f'{BASE_DIRECTORY}/files/secondary_analysis'
 
 DEFAULT_FILE_UPLOAD_URL = 'http://localhost:8888/v1'
+
+_config = ConfigParser()
+_secret_file_path = os.path.join(BASE_DIRECTORY, 'secrets.ini')
+_config.read(_secret_file_path)
+
+
+def secret_default(secret):
+    return _config.get('default', secret, fallback=None)
 
 
 class Resource(object):
@@ -75,9 +82,10 @@ _file_upload_base_url = os.environ.get('FILE_UPLOAD_URL')
 if not _file_upload_base_url:
     _file_upload_base_url = DEFAULT_FILE_UPLOAD_URL
 
+
 _sign_on_request = {
-    'client_id': secrets.get_default('client_id'),
-    'client_secret': secrets.get_default('client_secret'),
+    'client_id': secret_default('client_id'),
+    'client_secret': secret_default('client_secret'),
     'audience': 'http://localhost:8080',
     'grant_type': 'client_credentials'
 }
@@ -89,9 +97,10 @@ def _sign_on():
     _access_token = response.json()['access_token']
 
 
-class SecondarySubmission(TaskSet):
+_sign_on()
 
-    _access_token = None
+
+class SecondarySubmission(TaskSet):
 
     def on_start(self):
         pass
@@ -103,7 +112,7 @@ class SecondarySubmission(TaskSet):
             self._add_analysis_to_submission(submission)
 
     def _create_submission(self) -> Resource:
-        headers = {'Authorization': f'Bearer {self._access_token}'}
+        headers = {'Authorization': f'Bearer {_access_token}'}
         response = self.client.post('/submissionEnvelopes', headers=headers, json={},
                                     name='create new submission')
         response_json = response.json()
