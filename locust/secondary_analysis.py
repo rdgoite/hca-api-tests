@@ -1,25 +1,17 @@
+import copy
 import json
 import os
 import time
 from collections import deque
-from configparser import ConfigParser
 
 import requests
 from locust import TaskSet, HttpLocust, task
 
-AUTH_BROKER_URL = 'https://danielvaughan.eu.auth0.com/oauth/token'
+DEFAULT_AUTH_BROKER_URL = 'https://danielvaughan.eu.auth0.com/oauth/token'
+DEFAULT_FILE_UPLOAD_URL = 'http://localhost:8888/v1'
 
 BASE_DIRECTORY = os.path.abspath(os.path.dirname(__file__))
 FILE_DIRECTORY = f'{BASE_DIRECTORY}/files/secondary_analysis'
-
-_config = ConfigParser()
-_secret_file_path = os.path.join(BASE_DIRECTORY, 'secrets.ini')
-_config.read(_secret_file_path)
-
-
-def secret_default(secret):
-    return _config.get('default', secret, fallback=None)
-
 
 class Resource(object):
 
@@ -34,7 +26,8 @@ class Resource(object):
 
 class ResourceQueue:
 
-    _queue = deque()
+    def __init__(self):
+        self._queue = deque()
 
     def queue(self, resource: Resource):
         self._queue.append(resource)
@@ -50,27 +43,66 @@ class ResourceQueue:
 _submission_queue = ResourceQueue()
 _analysis_queue = ResourceQueue()
 
+with open(f'{FILE_DIRECTORY}/analysis.json') as analysis_file:
+    _dummy_analysis = json.load(analysis_file)
+    
+with open(f'{FILE_DIRECTORY}/analysis.json') as analysis_file:
+    _dummy_analysis = json.load(analysis_file)
+
+_analysis_file_template = {
+    'fileName': '',
+    'content': {
+        'lane': 1,
+        'type': 'reads',
+        'name': '',
+        'format': '.fastq.gz'
+    }
+}
+
+_dummy_analysis_files = []
+for name in ['ERR1630013.fastq.gz', 'ERR1630014.fastq.gz']:
+    test_file = copy.copy(_analysis_file_template)
+    test_file['fileName'] = name
+    test_file['content']['name'] = name
+    _dummy_analysis_files.append(test_file)
+
+
+_file_upload_base_url = os.environ.get('FILE_UPLOAD_URL', DEFAULT_FILE_UPLOAD_URL)
+
+_auth_broker_url = os.environ.get('AUTH_BROKER_URL', DEFAULT_AUTH_BROKER_URL)
+_client_id = os.environ.get('CLIENT_ID', '')
+_client_secret = os.environ.get('CLIENT_SECRET', '')
+
+_sign_on_request = {
+    'client_id': _client_id,
+    'client_secret': _client_secret,
+    'audience': 'http://localhost:8080',
+    'grant_type': 'client_credentials'
+}
+
+
+def _sign_on():
+    global _access_token
+    response = requests.post(DEFAULT_AUTH_BROKER_URL, json=_sign_on_request)
+    _access_token = response.json()['access_token']
+
+
+_sign_on()
+
 
 class SecondarySubmission(TaskSet):
 
-    _access_token = None
-
-    _dummy_analysis_details = None
-
     def on_start(self):
-        with open(f'{FILE_DIRECTORY}/analysis.json') as analysis_file:
-            self._dummy_analysis_details = json.load(analysis_file)
-        self._access_token = secret_default('access_token')
+        pass
 
     @task
     def setup_analysis(self):
         submission = self._create_submission()
         if submission:
-            processes_link = submission.get_link('processes')
-            self._add_analysis_to_submission(processes_link)
+            self._add_analysis_to_submission(submission)
 
     def _create_submission(self) -> Resource:
-        headers = {'Authorization': f'Bearer {self._access_token}'}
+        headers = {'Authorization': f'Bearer {_access_token}'}
         response = self.client.post('/submissionEnvelopes', headers=headers, json={},
                                     name='create new submission')
         response_json = response.json()
@@ -81,50 +113,62 @@ class SecondarySubmission(TaskSet):
             _submission_queue.queue(submission)
         return submission
 
-    def _add_analysis_to_submission(self, processes_link):
-        response = self.client.post(processes_link, json=self._dummy_analysis_details,
+    def _add_analysis_to_submission(self, submission: Resource):
+        processes_link = submission.get_link('processes')
+        response = self.client.post(processes_link, json=_dummy_analysis,
                                     name='add analysis to submission')
         analysis_json = response.json()
         links = analysis_json.get('_links')
         if links:
-            _analysis_queue.queue(Resource(links))
+            analysis = Resource(links)
+            _analysis_queue.queue(analysis)
+            self._add_file_reference(analysis)
+
+    def _add_file_reference(self, analysis: Resource):
+        file_reference_link = analysis.get_link('add-file-reference')
+        for dummy_analysis_file in _dummy_analysis_files:
+            self.client.put(file_reference_link, json=dummy_analysis_file,
+                            name="add file reference")
 
 
-class FileStaging(TaskSet):
-
-    _dummy_staging_area_details = None
+class FileUpload(TaskSet):
 
     def on_start(self):
-        with open(f'{FILE_DIRECTORY}/staging_area_patch.json') as patch_file:
-            self._dummy_staging_area_details = json.load(patch_file)
+        pass
 
     @task
-    def update_staging_details(self):
+    def upload_files(self):
         submission = _submission_queue.wait_for_resource()
+        upload_area_uuid = None
         submission_link = submission.get_link('self')
-        self.client.put(submission_link, json=self._dummy_staging_area_details,
-                        name="set staging details")
+        while not upload_area_uuid:
+            upload_area_uuid = self._get_upload_area_uuid(submission_link)
+            if not upload_area_uuid:
+                time.sleep(3)
+        FileUpload._upload_dummy_files(upload_area_uuid)
 
+    def _get_upload_area_uuid(self, submission_link):
+        upload_area_uuid = None
+        submission_data = self.client.get(submission_link, name='get submission data').json()
+        staging_details = submission_data.get('stagingDetails')
+        if staging_details:
+            staging_area_uuid = staging_details.get('stagingAreaUuid')
+            if staging_area_uuid:
+                upload_area_uuid = staging_area_uuid.get('uuid')
+        return upload_area_uuid
 
-class Validation(TaskSet):
-
-    @task
-    def validate_analysis(self):
-        analysis = _analysis_queue.wait_for_resource()
-        analysis_link = f"{analysis.get_link('self')}"
-        self.client.patch(analysis_link, json={'validationErrors': []},
-                          name='report validation errors')
-        self.client.patch(analysis_link, json={'validationState': 'VALID'},
-                          name='set validation status')
+    @staticmethod
+    def _upload_dummy_files(upload_area_uuid):
+        print('uploading dummy files...')
+        for _dummy_analysis_file in _dummy_analysis_files:
+            upload_url = f'{_file_upload_base_url}/area/{upload_area_uuid}/files'
+            file_json = {'fileName': _dummy_analysis_file['fileName'], 'contentType': 'fastq'}
+            requests.put(upload_url, json=file_json)
 
 
 class GreenBox(HttpLocust):
     task_set = SecondarySubmission
 
 
-class StagingManager(HttpLocust):
-    task_set = FileStaging
-
-
-class Validator(HttpLocust):
-    task_set = Validation
+class FileUploader(HttpLocust):
+    task_set = FileUpload

@@ -1,0 +1,12 @@
+version: '3'
+services:
+  server:
+    build: .
+    image: humancellatlas/mock-server
+    ports:
+      - "8888:8888"
+    environment:
+      - >
+        RESPONSE_BODY={
+          "description": "test"
+        }
