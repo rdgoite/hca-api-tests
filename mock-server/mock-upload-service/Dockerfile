@@ -12,6 +12,6 @@ ENV API_VERSION=/v1
 ENV RABBITMQ_HOST=localhost
 ENV RABBITMQ_PORT=5672
 CMD java -jar mock-upload-service.jar \
-    --server.servlet.context-path=$API_VERSION \
+    --server.servlet.context-path=/$API_VERSION \
     --spring.rabbitmq.host=$RABBITMQ_HOST \
     --spring.rabbitmq.port=$RABBITMQ_PORT
