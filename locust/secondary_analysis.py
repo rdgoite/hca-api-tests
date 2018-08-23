@@ -162,7 +162,10 @@ class FileUpload(TaskSet):
         print('uploading dummy files...')
         for _dummy_analysis_file in _dummy_analysis_files:
             upload_url = f'{_file_upload_base_url}/area/{upload_area_uuid}/files'
-            file_json = {'fileName': _dummy_analysis_file['fileName'], 'contentType': 'fastq'}
+            file_json = {
+                'fileName': _dummy_analysis_file['fileName'],
+                'contentType': 'application/tar+gzip;dcp-type=data'
+            }
             requests.put(upload_url, json=file_json)
 
 
