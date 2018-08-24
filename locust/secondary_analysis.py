@@ -63,7 +63,10 @@ _dummy_analysis_files = []
 for name in ['ERR1630013.fastq.gz', 'ERR1630014.fastq.gz']:
     test_file = copy.copy(_analysis_file_template)
     test_file['fileName'] = name
-    test_file['content']['name'] = name
+    test_file['content'] = {
+        'describedBy': 'https://schema.humancellatlas.org/type/file/6.1.1/sequence_file',
+        'name': name
+    }
     _dummy_analysis_files.append(test_file)
 
 
