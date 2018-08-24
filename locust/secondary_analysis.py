@@ -151,6 +151,7 @@ class FileUpload(TaskSet):
         upload_area_uuid = None
         submission_link = submission.get_link('self')
         while not upload_area_uuid:
+            print(f'attempting to upload file for to [{submission_link}]...')
             upload_area_uuid = self._get_upload_area_uuid(submission_link)
             if not upload_area_uuid:
                 time.sleep(3)
