@@ -5,6 +5,7 @@ import sys
 import time
 from collections import deque
 
+import logging
 import requests
 from locust import TaskSet, HttpLocust, task
 
@@ -43,6 +44,11 @@ class ResourceQueue:
             time.sleep(0.5)
             submission = self._queue.popleft() if len(self._queue) > 0 else None
         return submission
+
+    def clear(self):
+
+        if len(self._queue) > 0:
+            self._queue.clear()
 
 
 _submission_queue = ResourceQueue()
@@ -94,6 +100,8 @@ class SecondarySubmission(TaskSet):
 
     def on_stop(self):
         _authenticator.end_session()
+        _submission_queue.clear()
+        _analysis_queue.clear()
 
     @task
     def setup_analysis(self):
@@ -142,7 +150,6 @@ class FileUpload(TaskSet):
         upload_area_uuid = None
         submission_link = submission.get_link('self')
         while not upload_area_uuid:
-            print(f'attempting to upload file for to [{submission_link}]...')
             upload_area_uuid = self._get_upload_area_uuid(submission_link)
             if not upload_area_uuid:
                 time.sleep(3)
@@ -160,7 +167,7 @@ class FileUpload(TaskSet):
 
     @staticmethod
     def _upload_dummy_files(upload_area_uuid):
-        print('uploading dummy files...')
+        logging.info(f'uploading dummy files to [{upload_area_uuid}]...')
         for _dummy_analysis_file in _dummy_analysis_files:
             upload_url = f'{_file_upload_base_url}/area/{upload_area_uuid}/files'
             file_json = {
