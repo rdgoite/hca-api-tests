@@ -1,8 +1,9 @@
 FROM python:3.6-slim
 
-WORKDIR locust
-COPY locust/files ./files
-COPY locust/secondary_analysis.py .
+WORKDIR scale_test
+COPY common ./common
+COPY locust/files ./locust/files
+COPY locust/secondary_analysis.py ./locust
 
 RUN pip install locust
 
@@ -14,4 +15,4 @@ ENV FILE_UPLOAD_URL=http://localhost:8888/v1
 ENV HOST_URL=http://localhost:8080
 
 EXPOSE 8089
-CMD locust --host=${HOST_URL} -f secondary_analysis.py
+CMD locust --host=${HOST_URL} -f locust/secondary_analysis.py
