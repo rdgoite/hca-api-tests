@@ -167,9 +167,9 @@ class FileUpload(TaskSet):
 
     @staticmethod
     def _upload_dummy_files(upload_area_uuid):
-        logging.info(f'uploading dummy files to [{upload_area_uuid}]...')
+        upload_url = f'{_file_upload_base_url}/area/{upload_area_uuid}/files'
+        logging.info(f'uploading dummy files to [{upload_url}]...')
         for _dummy_analysis_file in _dummy_analysis_files:
-            upload_url = f'{_file_upload_base_url}/area/{upload_area_uuid}/files'
             file_json = {
                 'fileName': _dummy_analysis_file['fileName'],
                 'contentType': 'application/tar+gzip;dcp-type=data'
