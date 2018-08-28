@@ -6,7 +6,7 @@ COPY locust/secondary_analysis.py .
 
 RUN pip install locust
 
-ENV AUTH0_ACCOUNT=sample.auth0.com
+ENV AUTH0_DOMAIN=sample.auth0.com
 ENV CLIENT_ID=0
 ENV CLIENT_SECRET=0
 

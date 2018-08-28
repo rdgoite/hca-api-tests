@@ -3,9 +3,9 @@ import os
 import logging
 import requests
 
-DEFAULT_AUTH0_ACCOUNT = 'danielvaughan.eu.auth0.com'
+DEFAULT_AUTH0_DOMAIN = 'danielvaughan.eu.auth0.com'
 
-_auth_broker_url = os.environ.get('AUTH_BROKER_URL', DEFAULT_AUTH0_ACCOUNT)
+_auth_broker_url = os.environ.get('AUTH0_DOMAIN', DEFAULT_AUTH0_DOMAIN)
 _auth_broker_url = f'https://{_auth_broker_url}/oauth/token'
 
 _client_id = os.environ.get('CLIENT_ID', '')
