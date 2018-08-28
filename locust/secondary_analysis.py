@@ -1,17 +1,22 @@
 import copy
 import json
 import os
+import sys
 import time
 from collections import deque
 
 import requests
 from locust import TaskSet, HttpLocust, task
 
-DEFAULT_AUTH_BROKER_URL = 'https://danielvaughan.eu.auth0.com/oauth/token'
+# sys.path setup needs to happen before import of common module
+sys.path.append(os.getcwd())
+from common.auth0 import Authenticator
+
 DEFAULT_FILE_UPLOAD_URL = 'http://localhost:8888/v1'
 
 BASE_DIRECTORY = os.path.abspath(os.path.dirname(__file__))
 FILE_DIRECTORY = f'{BASE_DIRECTORY}/files/secondary_analysis'
+
 
 class Resource(object):
 
@@ -78,31 +83,17 @@ for name in ['ERR1630013.fastq.gz', 'ERR1630014.fastq.gz']:
 
 _file_upload_base_url = os.environ.get('FILE_UPLOAD_URL', DEFAULT_FILE_UPLOAD_URL)
 
-_auth_broker_url = os.environ.get('AUTH_BROKER_URL', DEFAULT_AUTH_BROKER_URL)
-_client_id = os.environ.get('CLIENT_ID', '')
-_client_secret = os.environ.get('CLIENT_SECRET', '')
 
-_sign_on_request = {
-    'client_id': _client_id,
-    'client_secret': _client_secret,
-    'audience': 'http://localhost:8080',
-    'grant_type': 'client_credentials'
-}
-
-
-def _sign_on():
-    global _access_token
-    response = requests.post(DEFAULT_AUTH_BROKER_URL, json=_sign_on_request)
-    _access_token = response.json()['access_token']
-
-
-_sign_on()
+_authenticator = Authenticator()
 
 
 class SecondarySubmission(TaskSet):
 
     def on_start(self):
         pass
+
+    def on_stop(self):
+        _authenticator.end_session()
 
     @task
     def setup_analysis(self):
@@ -111,7 +102,7 @@ class SecondarySubmission(TaskSet):
             self._add_analysis_to_submission(submission)
 
     def _create_submission(self) -> Resource:
-        headers = {'Authorization': f'Bearer {_access_token}'}
+        headers = {'Authorization': f'Bearer {_authenticator.get_token()}'}
         response = self.client.post('/submissionEnvelopes', headers=headers, json={},
                                     name='create new submission')
         response_json = response.json()
