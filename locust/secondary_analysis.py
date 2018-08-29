@@ -76,7 +76,6 @@ for name in ['ERR1630013.fastq.gz', 'ERR1630014.fastq.gz']:
     test_file['fileName'] = name
     test_file['content'] = {
         'describedBy': 'https://schema.humancellatlas.org/type/file/6.1.1/sequence_file',
-        'name': name,
         'file_core': {
             "file_name": name,
             "file_format": name.split('.', 1)[1]
