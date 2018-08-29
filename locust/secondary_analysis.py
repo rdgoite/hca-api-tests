@@ -60,29 +60,21 @@ with open(f'{FILE_DIRECTORY}/analysis.json') as analysis_file:
 with open(f'{FILE_DIRECTORY}/analysis.json') as analysis_file:
     _dummy_analysis = json.load(analysis_file)
 
-_analysis_file_template = {
+_file_template = {
     'fileName': '',
     'content': {
-        'lane': 1,
-        'type': 'reads',
-        'name': '',
-        'format': '.fastq.gz'
+        'describedBy': 'https://schema.humancellatlas.org/type/file/6.1.1/sequence_file',
+        'schema_type': 'file',
+        'read_index': 'read1',
+        'lane_index': 1
     }
 }
 
 _dummy_analysis_files = []
 for name in ['ERR1630013.fastq.gz', 'ERR1630014.fastq.gz']:
-    test_file = copy.copy(_analysis_file_template)
+    test_file = copy.copy(_file_template)
     test_file['fileName'] = name
-    test_file['content'] = {
-        'describedBy': 'https://schema.humancellatlas.org/type/file/6.1.1/sequence_file',
-        'file_core': {
-            "file_name": name,
-            "file_format": name.split('.', 1)[1]
-        },
-        "read_index": "read1",
-        "lane_index": 1
-    }
+    test_file['content']['file_core'] = {'file_name': name, 'file_format': name.split('.', 1)[1]}
     _dummy_analysis_files.append(test_file)
 
 
