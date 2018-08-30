@@ -1,5 +1,6 @@
 package ingest.humancellatlas.org.mockuploadservice;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -18,6 +19,15 @@ public class MessageQueue {
     public static final String EXCHANGE_FILE_STAGED = "ingest.file.staged.exchange";
     public static final String ROUTING_KEY_FILE_STAGED = "ingest.file.create.staged";
 
+
+    private static final String DEFAULT_VALIDATION_OUTPUT;
+    static {
+        StringBuilder outputBuilder = new StringBuilder("{");
+        outputBuilder.append("\"validation_errors\": [], \"validation_state\": \"\"");
+        outputBuilder.append("}");
+        DEFAULT_VALIDATION_OUTPUT = outputBuilder.toString();
+    }
+
     @Autowired
     private ConnectionFactory connectionFactory;
 
@@ -30,7 +40,7 @@ public class MessageQueue {
     }
 
     public void sendValidationStatus(ObjectNode validationResult) {
-        validationResult.putObject("stdout").putArray("validationErrors");
+        validationResult.put("stdout", DEFAULT_VALIDATION_OUTPUT);
         rabbitTemplate.convertAndSend(EXCHANGE_FILE_VALIDATION, ROUTING_KEY_FILE_VALIDATION,
                 validationResult);
     }
