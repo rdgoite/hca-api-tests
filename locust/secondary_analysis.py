@@ -71,7 +71,9 @@ _file_template = {
 }
 
 _dummy_analysis_files = []
-for name in ['ERR1630013.fastq.gz', 'ERR1630014.fastq.gz']:
+_base_name = 'ERR16300'
+for index in range(1, 31):
+    name = f'{_base_name}{"%02d" % index}'
     test_file = copy.copy(_file_template)
     test_file['fileName'] = name
     test_file['content']['file_core'] = {'file_name': name, 'file_format': name.split('.', 1)[1]}
