@@ -70,12 +70,21 @@ _file_template = {
     }
 }
 
-_dummy_analysis_files = []
-for name in ['ERR1630013.fastq.gz', 'ERR1630014.fastq.gz']:
+
+def _create_test_file(name):
     test_file = copy.copy(_file_template)
     test_file['fileName'] = name
-    test_file['content']['file_core'] = {'file_name': name, 'file_format': name.split('.', 1)[1]}
-    _dummy_analysis_files.append(test_file)
+    split = name.split('.', 1)
+    format = split[1] if len(split) > 1 else None
+    test_file['content']['file_core'] = {'file_name': name, 'file_format': format}
+    return test_file
+
+
+_dummy_analysis_files = []
+_base_name = 'ERR16300'
+for index in range(1, 31):
+    name = f'{_base_name}{"%02d" % index}.fastq.gz'
+    _dummy_analysis_files.append(_create_test_file(name))
 
 
 _file_upload_base_url = os.environ.get('FILE_UPLOAD_URL', DEFAULT_FILE_UPLOAD_URL)
@@ -84,23 +93,12 @@ _file_upload_base_url = os.environ.get('FILE_UPLOAD_URL', DEFAULT_FILE_UPLOAD_UR
 _authenticator = Authenticator()
 
 
-class SecondarySubmission(TaskSet):
+class CoreClient:
 
-    def on_start(self):
-        pass
+    def __init__(self, client):
+        self.client = client
 
-    def on_stop(self):
-        _authenticator.end_session()
-        _submission_queue.clear()
-        _analysis_queue.clear()
-
-    @task
-    def setup_analysis(self):
-        submission = self._create_submission()
-        if submission:
-            self._add_analysis_to_submission(submission)
-
-    def _create_submission(self) -> Resource:
+    def create_submission(self) -> Resource:
         headers = {'Authorization': f'Bearer {_authenticator.get_token()}'}
         response = self.client.post('/submissionEnvelopes', headers=headers, json={},
                                     name='create new submission')
@@ -109,8 +107,27 @@ class SecondarySubmission(TaskSet):
         submission = None
         if links:
             submission = Resource(links)
-            _submission_queue.queue(submission)
         return submission
+
+
+class SecondarySubmission(TaskSet):
+
+    _core_client = None
+
+    def on_start(self):
+        self._core_client = CoreClient(self.client)
+
+    def on_stop(self):
+        _authenticator.end_session()
+        _submission_queue.clear()
+        _analysis_queue.clear()
+
+    @task
+    def setup_analysis(self):
+        submission = self._core_client.create_submission()
+        if submission:
+            _submission_queue.queue(submission)
+            self._add_analysis_to_submission(submission)
 
     def _add_analysis_to_submission(self, submission: Resource):
         processes_link = submission.get_link('processes')
@@ -170,6 +187,12 @@ class FileUpload(TaskSet):
 
 class GreenBox(HttpLocust):
     task_set = SecondarySubmission
+
+    def setup(self):
+        pass
+
+    def _setup_input_bundle(self):
+        pass
 
 
 class FileUploader(HttpLocust):
