@@ -75,7 +75,7 @@ class SecondarySubmission(TaskSet):
 
     @task
     def setup_analysis(self):
-        submission = self._core_client.create_submission()
+        submission = self._core_client.create_submission(_authenticator.get_token())
         if submission:
             _submission_queue.queue(submission)
             self._add_analysis_to_submission(submission)

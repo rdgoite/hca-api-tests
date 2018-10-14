@@ -1,8 +1,6 @@
 import time
 from collections import deque
 
-from common.auth0 import Authenticator
-
 
 class Resource(object):
 
@@ -40,10 +38,9 @@ class CoreClient:
 
     def __init__(self, client):
         self._client = client
-        self._authenticator = Authenticator()
 
-    def create_submission(self) -> Resource:
-        headers = {'Authorization': f'Bearer {self._authenticator.get_token()}'}
+    def create_submission(self, auth_token) -> Resource:
+        headers = {'Authorization': f'Bearer {auth_token}'}
         response = self._client.post('/submissionEnvelopes', headers=headers, json={},
                                      name='create new submission')
         response_json = response.json()
