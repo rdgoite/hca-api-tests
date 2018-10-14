@@ -12,7 +12,7 @@ from locust import TaskSet, HttpLocust, task
 sys.path.append(os.getcwd())
 
 from common.auth0 import Authenticator
-from locust.core_client import CoreClient, Resource, ResourceQueue
+from common.core_client import CoreClient, Resource, ResourceQueue
 
 DEFAULT_FILE_UPLOAD_URL = 'http://localhost:8888/v1'
 

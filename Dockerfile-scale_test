@@ -3,7 +3,6 @@ FROM python:3.6-slim
 WORKDIR scale_test
 COPY common ./common
 COPY locust/files ./locust/files
-COPY locust/core_client.py ./locust
 COPY locust/secondary_analysis.py ./locust
 
 
