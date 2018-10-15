@@ -1,4 +1,10 @@
+import os
+import sys
+
 from locust import TaskSet, task, HttpLocust
+
+# sys.path setup needs to happen before import of common module
+sys.path.append(os.getcwd())
 
 from common.auth0 import Authenticator
 from common.core_client import CoreClient, Resource
