@@ -12,6 +12,6 @@ EXPOSE 8089
 
 WORKDIR scale_test
 COPY common ./common
-COPY locust/submission.py ./locust
+COPY locust/submission.py ./locust/
 
 CMD locust --host=${HOST_URL} -f locust/submission.py
