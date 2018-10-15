@@ -1,0 +1,17 @@
+FROM python:3.6-slim
+
+RUN pip install locust
+
+ENV AUTH0_DOMAIN=sample.auth0.com
+ENV CLIENT_ID=0
+ENV CLIENT_SECRET=0
+
+ENV HOST_URL=http://localhost:8080
+
+EXPOSE 8089
+
+WORKDIR scale_test
+COPY common ./common
+COPY locust/submission.py ./locust
+
+CMD locust --host=${HOST_URL} -f locust/submission.py
