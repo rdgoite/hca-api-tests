@@ -1,11 +1,5 @@
 FROM python:3.6-slim
 
-WORKDIR scale_test
-COPY common ./common
-COPY locust/files ./locust/files
-COPY locust/secondary_analysis.py ./locust
-
-
 RUN pip install locust
 
 ENV AUTH0_DOMAIN=sample.auth0.com
@@ -16,4 +10,10 @@ ENV FILE_UPLOAD_URL=http://localhost:8888/v1
 ENV HOST_URL=http://localhost:8080
 
 EXPOSE 8089
+
+WORKDIR scale_test
+COPY common ./common
+COPY locust/files ./locust/files
+COPY locust/secondary_analysis.py ./locust
+
 CMD locust --host=${HOST_URL} -f locust/secondary_analysis.py
