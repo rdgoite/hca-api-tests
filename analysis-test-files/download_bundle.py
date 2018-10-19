@@ -1,10 +1,16 @@
 #!/usr/bin/env python
 import json
+from os import environ
 from sys import argv
 
 import requests
 
-DSS_BASE_URL = 'https://dss.integration.data.humancellatlas.org/v1'
+
+dss_base_url = 'https://dss.integration.data.humancellatlas.org/v1'
+dss_base_url = environ.get('DSS_BASE_URL', dss_base_url)
+
+dss_replica = 'aws'
+dss_replica = environ.get('DSS_REPLICA', dss_replica)
 
 
 def _pretty_print(json_data):
@@ -12,8 +18,8 @@ def _pretty_print(json_data):
 
 
 def _retrieve_bundle(bundle_uuid):
-    bundle_url = f'{DSS_BASE_URL}/bundles/{bundle_uuid}'
-    bundle_json = requests.get(bundle_url, params={'replica': 'aws'}).json()
+    bundle_url = f'{dss_base_url}/bundles/{bundle_uuid}'
+    bundle_json = requests.get(bundle_url, params={'replica': dss_replica}).json()
     formatted_json = _pretty_print(bundle_json)
     with open('bundle.json', 'w') as bundle_file:
         print('Writing bundle file to [bundle.json]...')
@@ -23,7 +29,7 @@ def _retrieve_bundle(bundle_uuid):
 
 # TODO add progress bar
 def _download_file(file_uuid, file_name):
-    response = requests.get(f'{DSS_BASE_URL}/files/{file_uuid}', params={'replica': 'aws'},
+    response = requests.get(f'{dss_base_url}/files/{file_uuid}', params={'replica': dss_replica},
                             stream=True)
     with open(file_name, 'wb') as bundle_file:
         for chunk in response.iter_content(chunk_size=256):
