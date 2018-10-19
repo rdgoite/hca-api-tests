@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import json
+import re
 from argparse import ArgumentParser
 from os import environ
 from sys import argv
@@ -37,28 +38,42 @@ def _download_file(file_uuid, file_name):
             bundle_file.write(chunk)
 
 
-def _download_bundle_files(_bundle):
+DATA_CONTENT_TYPE_MATCHER = re.compile('.*dcp-type\s*=\s*(?P<type>.*);?.*')
+
+
+def _get_file_type(file):
+    file_type = file.get('content-type')
+    return DATA_CONTENT_TYPE_MATCHER.search(file_type)['type']
+
+
+def _download_bundle_files(_bundle, download_data_files=True):
     if 'files' in _bundle:
         files = _bundle.get('files')
         for count, file in enumerate(files):
-            file_uuid = file.get('uuid')
             file_name = file.get('name')
-            print(f'Downloading files... [{count + 1} / {len(files)}]: {file_name}')
-            _download_file(file_uuid, file_name)
+            status = f'[{count + 1} / {len(files)}]: {file_name}'
+            if _get_file_type(file) != 'data' or download_data_files:
+                file_uuid = file.get('uuid')
+                print(f'Downloading files... {status}')
+                _download_file(file_uuid, file_name)
+            else:
+                print(f'Skipping file: {status}')
 
 
 def _parse_arguments():
     global args
     arg_parser = ArgumentParser()
-    arg_parser.add_argument('-u', '--baseurl', help='DSS base URL')
+    arg_parser.add_argument('-u', '--base-url', help='DSS base URL')
+    arg_parser.add_argument('-x', '--no-data', help='Disable download of data files',
+                            action='store_true')
     arg_parser.add_argument('uuid', help='the UUID of the bundle')
     return arg_parser.parse_args()
 
 
 if __name__ == '__main__':
     args = _parse_arguments()
-    if args.baseurl:
-        dss_base_url = args.baseurl
+    if args.base_url:
+        dss_base_url = args.base_url
     bundle_uuid = args.uuid
     bundle = _retrieve_bundle(bundle_uuid)
-    #_download_bundle_files(bundle)
+    _download_bundle_files(bundle, download_data_files=(not args.no_data))
