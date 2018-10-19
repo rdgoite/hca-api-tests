@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import json
+from argparse import ArgumentParser
 from os import environ
 from sys import argv
 
@@ -46,8 +47,18 @@ def _download_bundle_files(_bundle):
             _download_file(file_uuid, file_name)
 
 
+def _parse_arguments():
+    global args
+    arg_parser = ArgumentParser()
+    arg_parser.add_argument('-u', '--baseurl', help='DSS base URL')
+    arg_parser.add_argument('uuid', help='the UUID of the bundle')
+    return arg_parser.parse_args()
+
+
 if __name__ == '__main__':
-    assert len(argv) >= 2, f'No bundle uuid specified.'
-    bundle_uuid = argv[1]
+    args = _parse_arguments()
+    if args.baseurl:
+        dss_base_url = args.baseurl
+    bundle_uuid = args.uuid
     bundle = _retrieve_bundle(bundle_uuid)
-    _download_bundle_files(bundle)
+    #_download_bundle_files(bundle)
